@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Government official branding colors */
+  .bg-eci-navy {
+    background-color: #1B3B6F;
+  }
+  .text-eci-navy {
+    color: #1B3B6F;
+  }
+  .border-eci-navy {
+    border-color: #1B3B6F;
+  }
+  
+  .bg-eci-saffron {
+    background-color: #F58220;
+  }
+  .text-eci-saffron {
+    color: #F58220;
+  }
+  .border-eci-saffron {
+    border-color: #F58220;
+  }
+
+  .bg-eci-green {
+    background-color: #0B6A3A;
+  }
+  .text-eci-green {
+    color: #0B6A3A;
+  }
+  .border-eci-green {
+    border-color: #0B6A3A;
+  }
+
+  /* Tricolor gradient lines */
+  .bg-tricolor-line {
+    background: linear-gradient(to right, #F58220 33%, #FFFFFF 33%, #FFFFFF 66%, #0B6A3A 66%);
+  }
+
+  /* Pulse and float animations for modern look */
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .animate-pulseGlow {
+    animation: pulseGlow 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+}
