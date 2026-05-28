@@ -36,9 +36,9 @@ function Login() {
   // Boot logs simulation
   useEffect(() => {
     const bootLogs = [
-      'Establishing secure administrative handshake with central node...',
-      'Validating local client certificate parameters...',
-      'Presiding Authority database access keys synced... Node Ready.'
+      'Establishing secure administrative connection with ECI central registry...',
+      'Validating local presiding officer certificate credentials...',
+      'Presiding Authority authorized registry access verified... Workspace Ready.'
     ];
 
     bootLogs.forEach((msg, idx) => {
@@ -90,7 +90,7 @@ function Login() {
         return;
       }
 
-      addLog(`Authorization validated successfully. Admin session token active.`, 'success');
+      addLog(`Authorization validated successfully. Admin session active.`, 'success');
       localStorage.setItem('adminUser', JSON.stringify(data.user));
       
       // Navigate to dashboard
@@ -99,8 +99,8 @@ function Login() {
       }, 1000);
     } catch (err) {
       console.error(err);
-      setLoginError('Failed to connect to the ECI database server. Ensure backend is running.');
-      addLog('Connection error: database backend unreachable.', 'error');
+      setLoginError('Failed to connect to the ECI Central Registry server.');
+      addLog('Connection error: ECI Central Registry server unreachable.', 'error');
     }
   };
 
