@@ -29,6 +29,21 @@ function AdminDashboard() {
   const [newName, setNewName] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
+  // Register Nominee State
+  const [isAddingCandidate, setIsAddingCandidate] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addParty, setAddParty] = useState('');
+  const [addLogo, setAddLogo] = useState('🏛️');
+  const [addColor, setAddColor] = useState('indigo');
+  const [addLoading, setAddLoading] = useState(false);
+
+  const clearAddForm = () => {
+    setAddName('');
+    setAddParty('');
+    setAddLogo('🏛️');
+    setAddColor('indigo');
+  };
+
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
   // Check auth on mount
@@ -116,6 +131,67 @@ function AdminDashboard() {
     }
   };
 
+  // Delete contesting candidate from database
+  const handleDeleteCandidate = async (id, name) => {
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to delete contesting candidate "${name}"? This will permanently remove all associated votes cast for this candidate from the registry.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/candidates/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to delete contesting candidate from the registry');
+      }
+
+      alert(`🎉 Contesting Candidate "${name}" and all associated votes have been successfully deleted.`);
+      fetchAdminData(); // Refresh the standings and elector directory
+    } catch (error) {
+      console.error(error);
+      alert(`Error deleting contesting candidate: ${error.message}`);
+    }
+  };
+
+  // Register contesting candidate in ECI central database
+  const handleCreateCandidate = async (e) => {
+    e.preventDefault();
+    if (!addName || addName.trim() === '' || !addParty || addParty.trim() === '') return;
+
+    setAddLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/candidates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: addName.trim(),
+          party: addParty.trim(),
+          logo: addLogo.trim(),
+          color: addColor
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to register contesting candidate in database');
+      }
+
+      alert(`🎉 Contesting Candidate "${addName}" registered successfully in ECI Central Registry!`);
+      setIsAddingCandidate(false);
+      clearAddForm();
+      fetchAdminData(); // Refresh standings and directory
+    } catch (error) {
+      console.error(error);
+      alert(`Error registering nominee: ${error.message}`);
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   // Turnout computations
   const totalElectorsCount = electors.length;
   const totalVotesCast = electors.filter(e => e.hasVoted).length;
@@ -170,7 +246,7 @@ function AdminDashboard() {
                     ECI OFFICERS
                   </h1>
                   <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                    Presiding Admin Gate
+                    Presiding Officers Administrative Workspace
                   </p>
                 </div>
               )}
@@ -208,10 +284,10 @@ function AdminDashboard() {
             } ${isCollapsed ? 'lg:justify-center lg:px-2' : 'w-full'}`}
           >
             <span className="text-base select-none shrink-0">📊</span>
-            {!isCollapsed && <span>Overview & Stats</span>}
+            {!isCollapsed && <span>Electoral Statistics</span>}
             {isCollapsed && (
               <span className="absolute left-full ml-4 px-2.5 py-1.5 rounded bg-slate-950 text-white text-[10px] uppercase font-bold tracking-wider opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-lg border border-slate-750">
-                Overview & Stats
+                Electoral Statistics
               </span>
             )}
           </button>
@@ -244,10 +320,10 @@ function AdminDashboard() {
             } ${isCollapsed ? 'lg:justify-center lg:px-2' : 'w-full'}`}
           >
             <span className="text-base select-none shrink-0">🗳️</span>
-            {!isCollapsed && <span>Ballot Nominees</span>}
+            {!isCollapsed && <span>Contesting Candidates</span>}
             {isCollapsed && (
               <span className="absolute left-full ml-4 px-2.5 py-1.5 rounded bg-slate-950 text-white text-[10px] uppercase font-bold tracking-wider opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-lg border border-slate-750">
-                Ballot Nominees
+                Contesting Candidates
               </span>
             )}
           </button>
@@ -266,7 +342,7 @@ function AdminDashboard() {
               <div className="font-mono text-[9.5px] uppercase leading-tight truncate flex-1 min-w-0">
                 <p className="font-black tracking-wide truncate text-white">{adminData.fullName}</p>
                 <p className="text-[8.5px] text-slate-400 tracking-wider font-semibold truncate">
-                  CHIEF OFFICERS DESK
+                  ECI CHIEF PRESIDING OFFICE
                 </p>
               </div>
             )}
@@ -283,7 +359,7 @@ function AdminDashboard() {
             <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
             </svg>
-            {!isCollapsed && <span>Logout Desk</span>}
+            {!isCollapsed && <span>Logout Workspace</span>}
           </button>
 
         </div>
@@ -295,9 +371,9 @@ function AdminDashboard() {
         {/* TOP STATUS BAR */}
         <header className="bg-white border-b border-slate-200 px-4 py-3 sm:px-8 shadow-sm flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
             <span className="text-[9.5px] font-black tracking-widest text-[#1B3B6F] uppercase font-mono leading-none flex items-center gap-1.5">
-              ECI OFFICIAL PRESIDING AUTHORITY NODE ACTIVE
+              ECI OFFICERS SECURED WORKSPACE ACTIVE
             </span>
           </div>
 
@@ -321,9 +397,9 @@ function AdminDashboard() {
                 🛡️
               </div>
               <div>
-                <h4 className="text-[10px] font-bold text-[#1B3B6F] uppercase tracking-wider leading-none">ECI PRESIDING COMMISSIONER DIALOG</h4>
+                <h4 className="text-[10px] font-bold text-[#1B3B6F] uppercase tracking-wider leading-none">ECI PRESIDING COMMISSIONER CONTEXT DIALOG</h4>
                 <p className="text-[10px] text-slate-500 mt-1 font-medium leading-tight">
-                  Officer Node authenticated safely. Access granted to electors ledger directories and dynamic ballot nominees overrides.
+                  Officer Node authenticated safely. Access granted to Electoral Directory and Contesting Candidates Registry overrides.
                 </p>
               </div>
             </div>
@@ -335,9 +411,9 @@ function AdminDashboard() {
               className="rounded-lg border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-1.5 text-[10px] font-black uppercase text-slate-700 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer disabled:bg-slate-100"
             >
               {loading ? (
-                <span className="h-3 w-3 rounded-full border-2 border-t-slate-700 border-slate-200 animate-spin" />
+                <span className="h-3 w-3 rounded-full border-2 border-t-slate-700 border-slate-200" />
               ) : (
-                '🔄 Sync Roster'
+                '🔄 Refresh Electoral Directory'
               )}
             </button>
           </div>
@@ -347,7 +423,7 @@ function AdminDashboard() {
             
             {/* VIEW 1: OVERVIEW & STATS */}
             {activeTab === 'overview' && (
-              <div className="space-y-8 animate-float">
+              <div className="space-y-8">
                 {/* 3 Metric cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   
@@ -355,25 +431,25 @@ function AdminDashboard() {
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Registered Electors</h4>
                       <p className="text-2xl font-black text-slate-800 mt-1.5 font-mono">{totalElectorsCount}</p>
-                      <p className="text-[9px] text-slate-455 font-semibold mt-1">ECI Ledger Roster</p>
+                      <p className="text-[9px] text-slate-455 font-semibold mt-1">ECI Official Electoral Roster</p>
                     </div>
                     <span className="text-2xl select-none bg-[#1B3B6F]/5 h-11 w-11 rounded-full flex items-center justify-center border border-[#1B3B6F]/10">👥</span>
                   </div>
 
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm border-b-4 border-b-[#0B6A3A] flex items-center justify-between">
                     <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Votes Cast</h4>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Votes Polled</h4>
                       <p className="text-2xl font-black text-slate-800 mt-1.5 font-mono">{totalVotesCast}</p>
-                      <p className="text-[9px] text-slate-455 font-semibold mt-1">Cryptographic Ledger Nodes</p>
+                      <p className="text-[9px] text-slate-455 font-semibold mt-1">Decentralized Statutory Records</p>
                     </div>
                     <span className="text-2xl select-none bg-[#0B6A3A]/5 h-11 w-11 rounded-full flex items-center justify-center border border-[#0B6A3A]/10">🗳️</span>
                   </div>
 
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm border-b-4 border-b-[#F58220] flex items-center justify-between">
                     <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Turnout Ratio</h4>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Elector Turnout Ratio</h4>
                       <p className="text-2xl font-black text-slate-800 mt-1.5 font-mono">{turnoutPercentage}%</p>
-                      <p className="text-[9px] text-slate-455 font-semibold mt-1">EVM Elector Liveness</p>
+                      <p className="text-[9px] text-slate-455 font-semibold mt-1">Biometric Verification Turnout</p>
                     </div>
                     <span className="text-2xl select-none bg-[#F58220]/5 h-11 w-11 rounded-full flex items-center justify-center border border-[#F58220]/10">⚡</span>
                   </div>
@@ -383,7 +459,7 @@ function AdminDashboard() {
                 {/* Candidate Standing Chart representation */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                   <div className="lg:col-span-8 flex flex-col">
-                    <GlowingCard glowColor="indigo" title="Real-time Legislative Standings">
+                    <GlowingCard glowColor="indigo" title="Live Progressive Poll Standings">
                       <div className="space-y-5.5">
                         {candidates.map(candidate => {
                           const percentage = totalVotesCast > 0 ? ((candidate.votes / totalVotesCast) * 100).toFixed(1) : '0.0';
@@ -397,14 +473,24 @@ function AdminDashboard() {
                           return (
                             <div key={candidate.id} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
                               <div className="mb-2 flex items-start justify-between">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[9px] font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-550 font-mono shadow-sm">
-                                      Ballot #{candidate.id}
-                                    </span>
-                                    <span className="text-xs font-black text-slate-800">{candidate.name}</span>
+                                <div className="flex items-center gap-3">
+                                  {/* Party Logo */}
+                                  <div className="h-9 w-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-xl shrink-0 shadow-sm overflow-hidden select-none">
+                                    {candidate.logo && (candidate.logo.startsWith('http') || candidate.logo.startsWith('data:image')) ? (
+                                      <img src={candidate.logo} alt="Logo" className="h-full w-full object-cover" />
+                                    ) : (
+                                      <span>{candidate.logo || '🏛️'}</span>
+                                    )}
                                   </div>
-                                  <p className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{candidate.party}</p>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] font-bold bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-550 font-mono shadow-sm">
+                                        Ballot Position #{candidate.id}
+                                      </span>
+                                      <span className="text-xs font-black text-slate-800">{candidate.name}</span>
+                                    </div>
+                                    <p className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{candidate.party}</p>
+                                  </div>
                                 </div>
                                 <div className="text-right shrink-0">
                                   <span className="text-xs font-black text-slate-900 font-mono">{candidate.votes} votes</span>
@@ -427,22 +513,22 @@ function AdminDashboard() {
 
                   {/* Administrative details */}
                   <div className="lg:col-span-4 flex flex-col gap-6">
-                    <GlowingCard glowColor="cyan" title="Electoral Audit Specs">
+                    <GlowingCard glowColor="cyan" title="Electoral Audit Specifications">
                       <div className="space-y-4 text-xs">
                         <div className="border-b border-slate-100 pb-3">
-                          <h4 className="text-[9px] font-bold text-slate-400 font-mono uppercase">Voter Verification Engine</h4>
-                          <p className="text-slate-800 font-extrabold mt-1">ECI Biometric Face Matcher v1.2</p>
+                          <h4 className="text-[9px] font-bold text-slate-400 font-mono uppercase">Elector Verification Engine</h4>
+                          <p className="text-slate-800 font-extrabold mt-1">ECI Biometric Verification System v1.2</p>
                         </div>
                         
                         <div className="border-b border-slate-100 pb-3">
-                          <h4 className="text-[9px] font-bold text-slate-400 font-mono uppercase">Ledger Cryptography</h4>
-                          <p className="text-slate-800 font-extrabold mt-1">SHA-256 with Zero-Knowledge Proofs</p>
+                          <h4 className="text-[9px] font-bold text-slate-400 font-mono uppercase">Electoral Registry Cryptography</h4>
+                          <p className="text-slate-800 font-extrabold mt-1 font-mono">Secured Cryptographic Verification</p>
                         </div>
 
                         <div>
-                          <h4 className="text-[9px] font-bold text-slate-400 font-mono uppercase">Connection Node</h4>
+                          <h4 className="text-[9px] font-bold text-slate-400 font-mono uppercase">Registry Connection Status</h4>
                           <p className="text-emerald-600 font-extrabold mt-1 flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             SECURE & SYNCED
                           </p>
                         </div>
@@ -455,13 +541,13 @@ function AdminDashboard() {
 
             {/* VIEW 2: ELECTOR DIRECTORY */}
             {activeTab === 'electors' && (
-              <div className="space-y-5 animate-float bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="space-y-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                 
                 {/* Header & Search */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
                   <div>
-                    <h3 className="text-sm font-black uppercase text-[#1B3B6F] tracking-wide font-mono">Registered Electors Directory</h3>
-                    <p className="text-[10px] text-slate-500 font-medium">Verify registered electors metadata, biometrics liveness score, and voted ledger transactions.</p>
+                    <h3 className="text-sm font-black uppercase text-[#1B3B6F] tracking-wide font-mono">Official Electoral Directory</h3>
+                    <p className="text-[10px] text-slate-500 font-medium">Verify registered elector credentials, biometric identity validation scores, and polled transactions.</p>
                   </div>
                   
                   {/* Search bar */}
@@ -482,12 +568,12 @@ function AdminDashboard() {
                   <table className="w-full text-left border-collapse text-[10.5px]">
                     <thead>
                       <tr className="bg-slate-100 border-b border-slate-250 text-slate-650 font-bold uppercase tracking-wider font-mono">
-                        <th className="py-3 px-3">Elector</th>
-                        <th className="py-3 px-3">EPIC Card Number</th>
-                        <th className="py-3 px-3">State & Constituency</th>
-                        <th className="py-3 px-3">Phone & ID Card</th>
-                        <th className="py-3 px-3">Liveness Match</th>
-                        <th className="py-3 px-3 text-center">Vote Status</th>
+                        <th className="py-3 px-3">Elector Details</th>
+                        <th className="py-3 px-3">Elector Photo Identity Card (EPIC) Number</th>
+                        <th className="py-3 px-3">State/UT & Assembly Constituency</th>
+                        <th className="py-3 px-3">Mobile & Alternative Identity Document</th>
+                        <th className="py-3 px-3">Biometric Match Score</th>
+                        <th className="py-3 px-3 text-center">Status of Franchise</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-150">
@@ -530,13 +616,13 @@ function AdminDashboard() {
                             {/* Mobile & ID details */}
                             <td className="py-3.5 px-3 leading-tight">
                               <p className="font-mono font-bold text-slate-700">{elector.phone}</p>
-                              <p className="text-[9px] text-slate-450 font-semibold uppercase mt-0.5">{elector.idType}: {elector.idNumber}</p>
+                              <p className="text-[9px] text-slate-455 font-semibold uppercase mt-0.5">{elector.idType}: {elector.idNumber}</p>
                             </td>
 
                             {/* Liveness Score */}
                             <td className="py-3.5 px-3 font-mono">
                               <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-500/10 text-[#0B6A3A] border border-emerald-500/20 font-bold select-none text-[9.5px]">
-                                {elector.matchScore}% liveness
+                                {elector.matchScore}% verified
                               </span>
                             </td>
 
@@ -544,16 +630,19 @@ function AdminDashboard() {
                             <td className="py-3.5 px-3 text-center">
                               {elector.hasVoted ? (
                                 <div className="inline-block text-left max-w-xs">
-                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-[#0B6A3A] border border-emerald-500/20 uppercase tracking-widest font-mono select-none">
-                                    ● voted (Nominee #{elector.votedCandidateId})
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/15 text-[#0B6A3A] border border-emerald-500/30 text-[9.5px] font-black uppercase tracking-wider font-mono select-none">
+                                    ● Franchise Exercised
                                   </span>
-                                  <p className="font-mono text-[8px] text-slate-400 break-all select-all font-semibold mt-1">
-                                    HASH: {elector.votedTxHash}
+                                  <p className="text-[9px] font-bold text-slate-700 mt-1 leading-snug">
+                                    Contesting Candidate: <span className="text-[#1B3B6F]">{elector.votedCandidateName || `Candidate #${elector.votedCandidateId}`}</span>
+                                  </p>
+                                  <p className="font-mono text-[8px] text-slate-450 break-all select-all font-semibold mt-1">
+                                    SECURE LEDGER AUDIT ID: {elector.votedTxHash}
                                   </p>
                                 </div>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-455 border border-slate-200 uppercase tracking-widest font-mono select-none">
-                                  ● Unvoted
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 text-slate-500 border border-slate-200 text-[9.5px] font-black uppercase tracking-wider font-mono select-none">
+                                  ● Franchise Not Exercised
                                 </span>
                               )}
                             </td>
@@ -570,12 +659,115 @@ function AdminDashboard() {
 
             {/* VIEW 3: NOMINEE MANAGER */}
             {activeTab === 'nominees' && (
-              <div className="space-y-6 animate-float">
+              <div className="space-y-6">
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                  <div className="border-b border-slate-100 pb-3 mb-5">
-                    <h3 className="text-sm font-black uppercase text-[#1B3B6F] tracking-wide font-mono">Dynamic Ballot Nominee Manager</h3>
-                    <p className="text-[10px] text-slate-500 font-medium">ECI Admins hold the authority to modify candidate rosters dynamically in the PostgreSQL database. Electors EVM terminals update automatically.</p>
+                  <div className="border-b border-slate-100 pb-3 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-black uppercase text-[#1B3B6F] tracking-wide font-mono">Contesting Candidates Registry</h3>
+                      <p className="text-[10px] text-slate-500 font-medium">Presiding Officers hold the statutory authority to modify the Contesting Candidates Registry in the database. Electoral terminals sync automatically.</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => setIsAddingCandidate(!isAddingCandidate)}
+                      className="rounded-lg bg-[#1B3B6F] hover:bg-[#12274A] text-white px-4 py-2.5 text-xs font-black uppercase tracking-wider cursor-pointer shadow-sm text-center shrink-0 flex items-center gap-1.5"
+                    >
+                      {isAddingCandidate ? '❌ Close Registry Form' : '➕ Register Contesting Candidate'}
+                    </button>
                   </div>
+
+                  {/* Register Candidate Form Block */}
+                  {isAddingCandidate && (
+                    <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-inner animate-none">
+                      <h4 className="text-xs font-black uppercase text-[#1B3B6F] tracking-wide font-mono mb-4">
+                        Register New Nominee to ECI Registry / नया उम्मीदवार जोड़ें
+                      </h4>
+                      
+                      <form onSubmit={handleCreateCandidate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8.5px] font-bold uppercase text-slate-455 tracking-wider">Candidate Name</label>
+                          <input
+                            required
+                            type="text"
+                            placeholder="e.g. Dr. Rajesh Kumar"
+                            value={addName}
+                            onChange={(e) => setAddName(e.target.value)}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] text-slate-800 focus:border-[#1B3B6F] focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8.5px] font-bold uppercase text-slate-455 tracking-wider">Political Party Name</label>
+                          <input
+                            required
+                            type="text"
+                            placeholder="e.g. Indian National League (INL)"
+                            value={addParty}
+                            onChange={(e) => setAddParty(e.target.value)}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] text-slate-800 focus:border-[#1B3B6F] focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8.5px] font-bold uppercase text-slate-455 tracking-wider">Party Logo (Emoji, Symbol, or URL)</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="e.g. ⚖️, ☀️, 🌾, 🏛️ or https://example.com/logo.png"
+                              value={addLogo}
+                              onChange={(e) => setAddLogo(e.target.value)}
+                              className="flex-grow rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] text-slate-800 focus:border-[#1B3B6F] focus:outline-none"
+                            />
+                            <div className="flex gap-1 items-center bg-white border border-slate-300 rounded-lg px-2 shrink-0">
+                              {['🏛️', '⚖️', '🌾', '☀️', '🌟', '🎯'].map(emoji => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => setAddLogo(emoji)}
+                                  className="hover:bg-slate-100 p-1 rounded text-base cursor-pointer"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8.5px] font-bold uppercase text-slate-455 tracking-wider">Theme Color Accent</label>
+                          <select
+                            value={addColor}
+                            onChange={(e) => setAddColor(e.target.value)}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] text-slate-800 focus:border-[#1B3B6F] focus:outline-none"
+                          >
+                            <option value="indigo">Indigo Blue (CPA Style)</option>
+                            <option value="cyan">Cyan Amber (DTC Style)</option>
+                            <option value="emerald">Emerald Green (EIL Style)</option>
+                          </select>
+                        </div>
+
+                        <div className="md:col-span-2 flex justify-end gap-3 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingCandidate(false);
+                              clearAddForm();
+                            }}
+                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-[9.5px] font-black uppercase text-slate-550 hover:bg-slate-100 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          
+                          <button
+                            type="submit"
+                            disabled={addLoading}
+                            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 text-[9.5px] font-black uppercase tracking-wider cursor-pointer shadow-sm text-center flex items-center justify-center gap-1.5"
+                          >
+                            {addLoading ? 'Creating...' : 'Register ECI Nominee'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
 
                   {/* Candidates editing roster */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -598,16 +790,27 @@ function AdminDashboard() {
                           <div>
                             <div className="flex justify-between items-center mb-3">
                               <span className="text-[8.5px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full text-slate-550 font-mono shadow-inner select-none">
-                                BALLOT NO. #{candidate.id}
+                                BALLOT POSITION #{candidate.id}
                               </span>
                               <span className="text-[10.5px] font-black text-slate-800 font-mono select-none">
                                 {candidate.votes} votes ({percentage}%)
                               </span>
                             </div>
 
-                            <div className="mb-4">
-                              <h4 className="text-xs font-black text-slate-900 leading-snug">{candidate.name}</h4>
-                              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{candidate.party}</p>
+                            <div className="flex items-center gap-3 mb-4">
+                              {/* Party Logo */}
+                              <div className="h-11 w-11 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-2xl shrink-0 shadow-sm overflow-hidden select-none">
+                                {candidate.logo && (candidate.logo.startsWith('http') || candidate.logo.startsWith('data:image')) ? (
+                                  <img src={candidate.logo} alt="Logo" className="h-full w-full object-cover" />
+                                ) : (
+                                  <span>{candidate.logo || '🏛️'}</span>
+                                )}
+                              </div>
+                              
+                              <div>
+                                <h4 className="text-xs font-black text-slate-900 leading-snug">{candidate.name}</h4>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{candidate.party}</p>
+                              </div>
                             </div>
                           </div>
 
@@ -616,11 +819,11 @@ function AdminDashboard() {
                             {isEditingThis ? (
                               <form onSubmit={(e) => handleUpdateCandidateName(e, candidate.id)} className="space-y-3.5">
                                 <div className="flex flex-col gap-1">
-                                  <label className="text-[8.5px] font-bold uppercase text-slate-450 tracking-wider">Configure New Name</label>
+                                  <label className="text-[8.5px] font-bold uppercase text-slate-455 tracking-wider">Register Renamed Name</label>
                                   <input
                                     required
                                     type="text"
-                                    placeholder="Enter new candidate name"
+                                    placeholder="Enter renamed name of candidate"
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] text-slate-800 focus:border-[#1B3B6F] focus:outline-none"
@@ -640,26 +843,35 @@ function AdminDashboard() {
                                   <button
                                     type="submit"
                                     disabled={editLoading}
-                                    className="w-2/3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm text-center flex items-center justify-center gap-1.5"
+                                    className="w-2/3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-[9.5px] font-black uppercase tracking-wider cursor-pointer shadow-sm text-center flex items-center justify-center gap-1.5"
                                   >
                                     {editLoading ? (
-                                      <span className="h-3 w-3 rounded-full border-2 border-t-white border-white/20 animate-spin" />
+                                      <span className="h-3 w-3 rounded-full border-2 border-t-white border-white/20" />
                                     ) : (
-                                      'Commit'
+                                      'Rename'
                                     )}
                                   </button>
                                 </div>
                               </form>
                             ) : (
-                              <button
-                                onClick={() => {
-                                  setEditingId(candidate.id);
-                                  setNewName(candidate.name);
-                                }}
-                                className="w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white py-2.5 text-[10.5px] font-black uppercase tracking-wider active:scale-97 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
-                              >
-                                📝 Rename Candidate
-                              </button>
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingId(candidate.id);
+                                    setNewName(candidate.name);
+                                  }}
+                                  className="w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white py-2.5 text-[10.5px] font-black uppercase tracking-wider cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
+                                >
+                                  <span>Rename Candidate Name</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCandidate(candidate.id, candidate.name)}
+                                  className="w-full rounded-xl bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 py-2.5 text-[10.5px] font-black uppercase tracking-wider cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
+                                >
+                                  <span>Delete Candidate Nominee</span>
+                                </button>
+                              </div>
                             )}
                           </div>
 
@@ -680,7 +892,7 @@ function AdminDashboard() {
         <footer className="mt-auto bg-slate-900 text-slate-500 py-6 px-4 text-center border-t border-slate-800">
           <div className="mx-auto max-w-7xl text-[8.5px] uppercase font-mono tracking-widest">
             <p>© {new Date().getFullYear()} ELECTION COMMISSION OF INDIA. ALL RIGHTS RESERVED.</p>
-            <p className="mt-1.5 text-slate-600">PRESIDING DESK HUB | AUTHORIZED DIRECTORY DATABASE INTEGRITY SECURED</p>
+            <p className="mt-1.5 text-slate-600">PRESIDING OFFICERS DESK HUB | AUTHORIZED DIRECTORY INTEGRITY SECURED</p>
           </div>
         </footer>
 
